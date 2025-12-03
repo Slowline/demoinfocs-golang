@@ -284,12 +284,27 @@ func (p *parser) parseFrame() bool {
 		size = p.bitReader.ReadVarInt32()
 	}
 
-	p.msgQueue <- ingameTickNumber(int32(tick))
-
 	// Check if we've reached the target tick and can stop skipping
 	if p.isSkippingToTick && int(tick) >= p.config.SkipToTick {
 		p.isSkippingToTick = false
 	}
+
+	// Determine if this message type is critical for initialization
+	// These messages must be processed even when skipping to ensure proper parser state
+	isCriticalMessage := msgType == msg.EDemoCommands_DEM_SendTables ||
+		msgType == msg.EDemoCommands_DEM_ClassInfo ||
+		msgType == msg.EDemoCommands_DEM_SignonPacket ||
+		msgType == msg.EDemoCommands_DEM_FullPacket
+
+	// If we're skipping and this is not a critical message, skip the buffer data entirely
+	// This improves performance by avoiding unnecessary buffer allocation, reading, and processing
+	if p.isSkippingToTick && !isCriticalMessage {
+		p.bitReader.Skip(int(size) << 3)
+		p.currentFrame++
+		return true
+	}
+
+	p.msgQueue <- ingameTickNumber(int32(tick))
 
 	msgCreator := demoCommandMsgsCreators[msgType]
 	if msgCreator == nil {
