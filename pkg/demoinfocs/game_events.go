@@ -24,7 +24,7 @@ func (p *parser) handleGameEventList(gel *msg.CMsgSource1LegacyGameEventList) {
 
 func (p *parser) handleGameEvent(ge *msg.CMsgSource1LegacyGameEvent) {
 	if p.gameEventDescs == nil {
-		p.eventDispatcher.Dispatch(events.ParserWarn{
+		p.dispatchEvent(events.ParserWarn{
 			Message: "received GameEvent but event descriptors are missing",
 			Type:    events.WarnTypeGameEventBeforeDescriptors,
 		})
@@ -54,11 +54,11 @@ func (p *parser) handleGameEvent(ge *msg.CMsgSource1LegacyGameEvent) {
 			handler(data)
 		}
 	} else {
-		p.eventDispatcher.Dispatch(events.ParserWarn{Message: fmt.Sprintf("unknown event %q", desc.GetName())})
+		p.dispatchEvent(events.ParserWarn{Message: fmt.Sprintf("unknown event %q", desc.GetName())})
 		unassert.Error("unknown event %q", desc.GetName())
 	}
 
-	p.eventDispatcher.Dispatch(events.GenericGameEvent{
+	p.dispatchEvent(events.GenericGameEvent{
 		Name: desc.GetName(),
 		Data: data,
 	})
@@ -73,7 +73,7 @@ type gameEventHandler struct {
 }
 
 func (geh gameEventHandler) dispatch(event any) {
-	geh.parser.eventDispatcher.Dispatch(event)
+	geh.parser.dispatchEvent(event)
 }
 
 func (geh gameEventHandler) gameState() *gameState {

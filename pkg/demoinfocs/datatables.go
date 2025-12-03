@@ -40,11 +40,11 @@ func (p *parser) bindBomb() {
 			carrier := p.gameState.Participants().FindByPawnHandle(val.Handle())
 			if !p.disableMimicSource1GameEvents {
 				if carrier != nil {
-					p.eventDispatcher.Dispatch(events.BombPickup{
+					p.dispatchEvent(events.BombPickup{
 						Player: carrier,
 					})
 				} else if bomb.Carrier != nil {
-					p.eventDispatcher.Dispatch(events.BombDropped{
+					p.dispatchEvent(events.BombDropped{
 						Player:   bomb.Carrier,
 						EntityID: bomb.Carrier.EntityID,
 					})
@@ -77,7 +77,7 @@ func (p *parser) bindBomb() {
 				}
 
 				if !p.disableMimicSource1GameEvents {
-					p.eventDispatcher.Dispatch(events.BombPlantBegin{
+					p.dispatchEvent(events.BombPlantBegin{
 						BombEvent: events.BombEvent{
 							Player: p.gameState.currentPlanter,
 							Site:   site,
@@ -86,7 +86,7 @@ func (p *parser) bindBomb() {
 				}
 			} else if p.gameState.currentPlanter != nil {
 				p.gameState.currentPlanter.IsPlanting = false
-				p.eventDispatcher.Dispatch(events.BombPlantAborted{Player: p.gameState.currentPlanter})
+				p.dispatchEvent(events.BombPlantAborted{Player: p.gameState.currentPlanter})
 			}
 		})
 
@@ -132,7 +132,7 @@ func (p *parser) bindBomb() {
 		}
 
 		if !p.disableMimicSource1GameEvents {
-			p.eventDispatcher.Dispatch(events.BombPlanted{
+			p.dispatchEvent(events.BombPlanted{
 				BombEvent: events.BombEvent{
 					Player: planter,
 					Site:   site,
@@ -160,7 +160,7 @@ func (p *parser) bindBomb() {
 				return
 			}
 
-			p.eventDispatcher.Dispatch(events.BombExplode{
+			p.dispatchEvent(events.BombExplode{
 				BombEvent: events.BombEvent{
 					Player: planter,
 					Site:   site,
@@ -186,7 +186,7 @@ func (p *parser) bindBomb() {
 				}
 
 				if !p.disableMimicSource1GameEvents {
-					p.eventDispatcher.Dispatch(events.BombDefuseStart{
+					p.dispatchEvent(events.BombDefuseStart{
 						Player: defuser,
 						HasKit: hasKit,
 					})
@@ -200,7 +200,7 @@ func (p *parser) bindBomb() {
 			if isDefusedVal.Any != nil {
 				isDefused := isDefusedVal.BoolVal()
 				if !isDefused && p.gameState.currentDefuser != nil {
-					p.eventDispatcher.Dispatch(events.BombDefuseAborted{
+					p.dispatchEvent(events.BombDefuseAborted{
 						Player: p.gameState.currentDefuser,
 					})
 				}
@@ -218,7 +218,7 @@ func (p *parser) bindBomb() {
 			isDefused := val.BoolVal()
 			if isDefused && !p.disableMimicSource1GameEvents {
 				defuser := p.gameState.Participants().FindByPawnHandle(bombEntity.PropertyValueMust("m_hBombDefuser").Handle())
-				p.eventDispatcher.Dispatch(events.BombDefused{
+				p.dispatchEvent(events.BombDefused{
 					BombEvent: events.BombEvent{
 						Player: defuser,
 						Site:   site,
@@ -272,7 +272,7 @@ func (p *parser) bindTeamStates() {
 				oldScore := score
 				score = val.Int()
 
-				p.eventDispatcher.Dispatch(events.ScoreUpdated{
+				p.dispatchEvent(events.ScoreUpdated{
 					OldScore:  oldScore,
 					NewScore:  val.Int(),
 					TeamState: s,
@@ -283,7 +283,7 @@ func (p *parser) bindTeamStates() {
 				oldClanName := clanName
 				clanName = val.Str()
 
-				p.eventDispatcher.Dispatch(events.TeamClanNameUpdated{
+				p.dispatchEvent(events.TeamClanNameUpdated{
 					OldName:   oldClanName,
 					NewName:   clanName,
 					TeamState: s,
@@ -417,9 +417,9 @@ func (p *parser) bindNewPlayerController(controllerEntity st.Entity) {
 		isConnection := !wasConnected && pl.IsConnected
 		if isConnection {
 			if pl.SteamID64 != 0 {
-				p.eventDispatcher.Dispatch(events.PlayerConnect{Player: pl})
+				p.dispatchEvent(events.PlayerConnect{Player: pl})
 			} else {
-				p.eventDispatcher.Dispatch(events.BotConnect{Player: pl})
+				p.dispatchEvent(events.BotConnect{Player: pl})
 			}
 		}
 	})
@@ -512,7 +512,7 @@ func (p *parser) bindNewPlayerPawn(pawnEntity st.Entity) {
 				return
 			}
 
-			p.eventDispatcher.Dispatch(events.PlayerSpottersChanged{Spotted: pl})
+			p.dispatchEvent(events.PlayerSpottersChanged{Spotted: pl})
 		}
 
 		spottedByMaskProp.OnUpdate(spottersChanged)
@@ -694,13 +694,13 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 		})
 
 		if !p.disableMimicSource1GameEvents {
-			p.eventDispatcher.Dispatch(events.WeaponFire{
+			p.dispatchEvent(events.WeaponFire{
 				Shooter: proj.Owner,
 				Weapon:  proj.WeaponInstance,
 			})
 		}
 
-		p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
+		p.dispatchEvent(events.GrenadeProjectileThrow{
 			Projectile: proj,
 		})
 	})
@@ -762,7 +762,7 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 
 			bounceNumber := val.Int()
 			if bounceNumber != 0 {
-				p.eventDispatcher.Dispatch(events.GrenadeProjectileBounce{
+				p.dispatchEvent(events.GrenadeProjectileBounce{
 					Projectile: proj,
 					BounceNr:   bounceNumber,
 				})
@@ -786,7 +786,7 @@ func (p *parser) nadeProjectileDestroyed(proj *common.GrenadeProjectile) {
 		return
 	}
 
-	p.eventDispatcher.Dispatch(events.GrenadeProjectileDestroy{
+	p.dispatchEvent(events.GrenadeProjectileDestroy{
 		Projectile: proj,
 	})
 
@@ -811,7 +811,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	itemIndexVal := entity.PropertyValueMust("m_iItemDefinitionIndex")
 
 	if itemIndexVal.Any == nil {
-		p.eventDispatcher.Dispatch(events.ParserWarn{
+		p.dispatchEvent(events.ParserWarn{
 			Type:    events.WarnTypeMissingItemDefinitionIndex,
 			Message: "missing m_iItemDefinitionIndex property in weapon entity",
 		})
@@ -878,7 +878,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
 		if owner != nil && owner.IsInBuyZone() && p.GameState().IngameTick() == lastMoneyUpdateTick && lastMoneyIncreased {
-			p.eventDispatcher.Dispatch(events.ItemRefund{
+			p.dispatchEvent(events.ItemRefund{
 				Player: owner,
 				Weapon: equipment,
 			})
@@ -910,7 +910,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 			}
 
 			if shooter != nil && val.Float() > 0 {
-				p.eventDispatcher.Dispatch(events.WeaponFire{
+				p.dispatchEvent(events.WeaponFire{
 					Shooter: shooter,
 					Weapon:  equipment,
 				})
@@ -994,7 +994,7 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 	p.gameState.infernos[entity.ID()] = inf
 
 	entity.OnCreateFinished(func() {
-		p.eventDispatcher.Dispatch(events.InfernoStart{
+		p.dispatchEvent(events.InfernoStart{
 			Inferno: inf,
 		})
 	})
@@ -1012,7 +1012,7 @@ func (p *parser) infernoExpired(inf *common.Inferno) {
 		return
 	}
 
-	p.eventDispatcher.Dispatch(events.InfernoExpired{
+	p.dispatchEvent(events.InfernoExpired{
 		Inferno: inf,
 	})
 
@@ -1074,7 +1074,7 @@ func (p *parser) bindGameRules() {
 			}
 
 			if p.disableMimicSource1GameEvents {
-				p.eventDispatcher.Dispatch(freezetimeEvent)
+				p.dispatchEvent(freezetimeEvent)
 			} else {
 				p.gameState.lastFreezeTimeChangedEvent = &freezetimeEvent
 			}
@@ -1086,16 +1086,16 @@ func (p *parser) bindGameRules() {
 			oldGamePhase := p.gameState.gamePhase
 			p.gameState.gamePhase = common.GamePhase(val.Int())
 
-			p.eventDispatcher.Dispatch(events.GamePhaseChanged{
+			p.dispatchEvent(events.GamePhaseChanged{
 				OldGamePhase: oldGamePhase,
 				NewGamePhase: p.gameState.gamePhase,
 			})
 
 			switch p.gameState.gamePhase {
 			case common.GamePhaseTeamSideSwitch:
-				p.eventDispatcher.Dispatch(events.TeamSideSwitch{})
+				p.dispatchEvent(events.TeamSideSwitch{})
 			case common.GamePhaseGameHalfEnded:
-				p.eventDispatcher.Dispatch(events.GameHalfEnded{})
+				p.dispatchEvent(events.GameHalfEnded{})
 			}
 		})
 
@@ -1104,7 +1104,7 @@ func (p *parser) bindGameRules() {
 			oldIsWarmupPeriod := p.gameState.isWarmupPeriod
 			p.gameState.isWarmupPeriod = val.BoolVal()
 
-			p.eventDispatcher.Dispatch(events.IsWarmupPeriodChanged{
+			p.dispatchEvent(events.IsWarmupPeriodChanged{
 				OldIsWarmupPeriod: oldIsWarmupPeriod,
 				NewIsWarmupPeriod: p.gameState.isWarmupPeriod,
 			})
@@ -1130,14 +1130,14 @@ func (p *parser) bindGameRules() {
 				}
 			} else {
 				p.gameState.isMatchStarted = newMatchStarted
-				p.eventDispatcher.Dispatch(event)
+				p.dispatchEvent(event)
 			}
 		})
 
 		// Incremented at the beginning of a new overtime.
 		entity.Property(grPrefix("m_nOvertimePlaying")).OnUpdate(func(val st.PropertyValue) {
 			overtimeCount := val.Int()
-			p.eventDispatcher.Dispatch(events.OvertimeNumberChanged{
+			p.dispatchEvent(events.OvertimeNumberChanged{
 				OldCount: p.gameState.overtimeCount,
 				NewCount: overtimeCount,
 			})
@@ -1268,7 +1268,7 @@ func (p *parser) bindHostages() {
 			oldState := state
 			state = common.HostageState(val.Int())
 			if oldState != state {
-				p.eventDispatcher.Dispatch(events.HostageStateChanged{OldState: oldState, NewState: state, Hostage: p.gameState.hostages[entityID]})
+				p.dispatchEvent(events.HostageStateChanged{OldState: oldState, NewState: state, Hostage: p.gameState.hostages[entityID]})
 			}
 		})
 	})
