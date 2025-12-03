@@ -140,6 +140,11 @@ func (p *parser) ParseToEnd() (err error) {
 		}
 	}
 
+	// Enable skip mode if SkipToTick is configured
+	if p.config.SkipToTick > 0 {
+		p.isSkippingToTick = true
+	}
+
 	for {
 		if !p.parseFrame() {
 			return p.error()
@@ -277,6 +282,24 @@ func (p *parser) parseFrame() bool {
 		}
 
 		size = p.bitReader.ReadVarInt32()
+	}
+
+	// Check if we've reached the target tick and can stop skipping
+	if p.isSkippingToTick && int(tick) >= p.config.SkipToTick {
+		p.isSkippingToTick = false
+	}
+
+	// Determine if this message type is critical for initialization
+	isCriticalMessage := msgType == msg.EDemoCommands_DEM_SendTables ||
+		msgType == msg.EDemoCommands_DEM_ClassInfo ||
+		msgType == msg.EDemoCommands_DEM_SignonPacket ||
+		msgType == msg.EDemoCommands_DEM_FullPacket
+
+	// If we're skipping and this is not a critical message, just skip the data
+	if p.isSkippingToTick && !isCriticalMessage {
+		p.bitReader.Skip(int(size) << 3)
+		p.currentFrame++
+		return true
 	}
 
 	p.msgQueue <- ingameTickNumber(int32(tick))

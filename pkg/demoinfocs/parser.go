@@ -119,6 +119,7 @@ type parser struct {
 	 */
 	recordingPlayerSlot           int
 	disableMimicSource1GameEvents bool
+	isSkippingToTick              bool // Set to true when we're skipping frames to reach the target tick
 
 	// Additional fields, mainly caching & tracking things
 
@@ -511,6 +512,13 @@ type ParserConfig struct {
 	// It's the maximum time to retry for a response from the CSTV server, using an exponential backoff mechanism, starting at 1s.
 	// Only used when Format is DemoFormatCSTVBroadcast.
 	CSTVTimeout time.Duration
+
+	// SkipToTick specifies the ingame tick number from which parsing should start.
+	// All frames before this tick will be skipped without processing events or game state updates.
+	// A value of 0 (default) means parsing starts from the beginning of the demo.
+	// Note: Some initial setup data (like server info and data tables) will still be processed
+	// to ensure the parser is properly initialized.
+	SkipToTick int
 }
 
 // DefaultParserConfig is the default Parser configuration used by NewParser().
