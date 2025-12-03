@@ -74,7 +74,7 @@ func TestSkipToTick(t *testing.T) {
 
 		err = p.ParseToEnd()
 		assert.NoError(t, err)
-		
+
 		if killCount > 0 {
 			assert.GreaterOrEqual(t, minTick, 50000, "First kill should be at or after tick 50000")
 			t.Logf("Skipped parse: %d kills from tick %d to %d", killCount, minTick, maxTick)
@@ -117,7 +117,7 @@ func TestSkipToTick(t *testing.T) {
 
 		err = p.ParseToEnd()
 		assert.NoError(t, err)
-		
+
 		if eventCount > 0 {
 			assert.GreaterOrEqual(t, minTick, 10000, "First event should be at or after tick 10000")
 			t.Logf("Skipped parse: %d events starting from tick %d", eventCount, minTick)
