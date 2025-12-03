@@ -27,7 +27,7 @@ func (p *parser) handleSetConVar(setConVar *msg.CNETMsg_SetConVar) {
 		p.gameState.rules.conVars[cvar.GetName()] = cvar.GetValue()
 	}
 
-	p.eventDispatcher.Dispatch(events.ConVarsUpdated{
+	p.dispatchEvent(events.ConVarsUpdated{
 		UpdatedConVars: updated,
 	})
 }
@@ -36,14 +36,14 @@ func (p *parser) handleServerInfo(srvInfo *msg.CSVCMsg_ServerInfo) {
 	// srvInfo.MapCrc might be interesting as well
 	p.tickInterval = srvInfo.GetTickInterval()
 
-	p.eventDispatcher.Dispatch(events.TickRateInfoAvailable{
+	p.dispatchEvent(events.TickRateInfoAvailable{
 		TickRate: p.TickRate(),
 		TickTime: p.TickTime(),
 	})
 }
 
 func (p *parser) handleMessageSayText(msg *msg.CUserMessageSayText) {
-	p.eventDispatcher.Dispatch(events.SayText{
+	p.dispatchEvent(events.SayText{
 		EntIdx:    int(msg.GetPlayerindex()),
 		IsChat:    msg.GetChat(),
 		IsChatAll: false,
@@ -52,7 +52,7 @@ func (p *parser) handleMessageSayText(msg *msg.CUserMessageSayText) {
 }
 
 func (p *parser) handleMessageSayText2(msg *msg.CUserMessageSayText2) {
-	p.eventDispatcher.Dispatch(events.SayText2{
+	p.dispatchEvent(events.SayText2{
 		EntIdx:    int(msg.GetEntityindex()),
 		IsChat:    msg.GetChat(),
 		IsChatAll: false,
@@ -66,7 +66,7 @@ func (p *parser) handleMessageSayText2(msg *msg.CUserMessageSayText2) {
 	case "Cstrike_Chat_AllDead":
 		sender := p.gameState.playersByEntityID[int(msg.GetEntityindex())]
 
-		p.eventDispatcher.Dispatch(events.ChatMessage{
+		p.dispatchEvent(events.ChatMessage{
 			Sender:    sender,
 			Text:      msg.GetParam2(),
 			IsChatAll: false,
@@ -84,7 +84,7 @@ func (p *parser) handleMessageSayText2(msg *msg.CUserMessageSayText2) {
 	default:
 		errMsg := fmt.Sprintf("skipped sending ChatMessageEvent for SayText2 with unknown MsgName %q", msg.GetMessagename())
 
-		p.eventDispatcher.Dispatch(events.ParserWarn{Message: errMsg})
+		p.dispatchEvent(events.ParserWarn{Message: errMsg})
 		unassert.Error(errMsg)
 	}
 }
@@ -96,11 +96,11 @@ func (p *parser) handleServerRankUpdate(msg *msg.CCSUsrMsg_ServerRankUpdate) {
 		if !ok {
 			errMsg := fmt.Sprintf("rank update for unknown player with SteamID32=%d", steamID32)
 
-			p.eventDispatcher.Dispatch(events.ParserWarn{Message: errMsg})
+			p.dispatchEvent(events.ParserWarn{Message: errMsg})
 			unassert.Error(errMsg)
 		}
 
-		p.eventDispatcher.Dispatch(events.RankUpdate{
+		p.dispatchEvent(events.RankUpdate{
 			SteamID32:  v.GetAccountId(),
 			RankOld:    int(v.GetRankOld()),
 			RankNew:    int(v.GetRankNew()),

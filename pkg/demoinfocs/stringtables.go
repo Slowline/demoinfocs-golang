@@ -56,14 +56,14 @@ func (p *parser) updatePlayerFromRawIfExists(index int, raw common.PlayerInfo) {
 	p.gameState.indexPlayerBySteamID(pl)
 
 	if nameChanged {
-		p.eventDispatcher.Dispatch(events.PlayerNameChange{
+		p.dispatchEvent(events.PlayerNameChange{
 			Player:  pl,
 			OldName: oldName,
 			NewName: newName,
 		})
 	}
 
-	p.eventDispatcher.Dispatch(events.StringTablePlayerUpdateApplied{
+	p.dispatchEvent(events.StringTablePlayerUpdateApplied{
 		Player: pl,
 	})
 }
@@ -131,7 +131,7 @@ func (p *parser) setRawPlayer(index int, player common.PlayerInfo) {
 
 	p.updatePlayerFromRawIfExists(index, player)
 
-	p.eventDispatcher.Dispatch(events.PlayerInfo{
+	p.dispatchEvent(events.PlayerInfo{
 		Index: index,
 		Info:  player,
 	})
@@ -185,7 +185,7 @@ func (p *parser) handleCreateStringTable(tab *msg.CSVCMsg_CreateStringTable) {
 
 	p.stringTables = append(p.stringTables, tab)
 
-	p.eventDispatcher.Dispatch(events.StringTableCreated{TableName: tab.GetName()})
+	p.dispatchEvent(events.StringTableCreated{TableName: tab.GetName()})
 }
 
 // Holds and maintains a single entry in a string table.
@@ -219,7 +219,7 @@ func (p *parser) parseStringTable(
 	defer func() {
 		err := recover()
 		if err != nil {
-			p.eventDispatcher.Dispatch(events.ParserWarn{
+			p.dispatchEvent(events.ParserWarn{
 				Type:    events.WarnTypeStringTableParsingFailure,
 				Message: "failed to parse stringtable properly",
 			})
@@ -504,6 +504,6 @@ func (p *parser) parseUserInfo(data []byte, playerIndex int) {
 	povDemoDetected := p.recordingPlayerSlot == -1 && p.header.ClientName == playerInfo.Name
 	if povDemoDetected {
 		p.recordingPlayerSlot = playerIndex
-		p.eventDispatcher.Dispatch(events.POVRecordingPlayerDetected{PlayerSlot: playerIndex, PlayerInfo: playerInfo})
+		p.dispatchEvent(events.POVRecordingPlayerDetected{PlayerSlot: playerIndex, PlayerInfo: playerInfo})
 	}
 }

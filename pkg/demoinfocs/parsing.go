@@ -63,7 +63,7 @@ func (p *parser) parseHeader() (header, error) {
 
 		if p.ignorePacketEntitiesPanic {
 			warnFunc = func(err error) {
-				p.eventDispatcher.Dispatch(events.ParserWarn{
+				p.dispatchEvent(events.ParserWarn{
 					Type:    events.WarnTypePacketEntitiesPanic,
 					Message: fmt.Sprintf("encountered PacketEntities panic: %v", err),
 				})
@@ -138,6 +138,11 @@ func (p *parser) ParseToEnd() (err error) {
 		if err != nil {
 			return
 		}
+	}
+
+	// Enable skip mode if SkipToTick is configured
+	if p.config.SkipToTick > 0 {
+		p.isSkippingToTick = true
 	}
 
 	for {
@@ -279,11 +284,31 @@ func (p *parser) parseFrame() bool {
 		size = p.bitReader.ReadVarInt32()
 	}
 
+	// Check if we've reached the target tick and can stop skipping
+	if p.isSkippingToTick && int(tick) >= p.config.SkipToTick {
+		p.isSkippingToTick = false
+	}
+
+	// Determine if this message type is critical for initialization
+	// These messages must be processed even when skipping to ensure proper parser state
+	isCriticalMessage := msgType == msg.EDemoCommands_DEM_SendTables ||
+		msgType == msg.EDemoCommands_DEM_ClassInfo ||
+		msgType == msg.EDemoCommands_DEM_SignonPacket ||
+		msgType == msg.EDemoCommands_DEM_FullPacket
+
+	// If we're skipping and this is not a critical message, skip the buffer data entirely
+	// This improves performance by avoiding unnecessary buffer allocation, reading, and processing
+	if p.isSkippingToTick && !isCriticalMessage {
+		p.bitReader.Skip(int(size) << 3)
+		p.currentFrame++
+		return true
+	}
+
 	p.msgQueue <- ingameTickNumber(int32(tick))
 
 	msgCreator := demoCommandMsgsCreators[msgType]
 	if msgCreator == nil {
-		p.eventDispatcher.Dispatch(events.ParserWarn{
+		p.dispatchEvent(events.ParserWarn{
 			Message: fmt.Sprintf("skipping unknown demo commands message type with value %d", msgType),
 			Type:    events.WarnTypeUnknownDemoCommandMessageType,
 		})
@@ -300,7 +325,7 @@ func (p *parser) parseFrame() bool {
 		buf, err = snappy.Decode(nil, buf)
 		if err != nil {
 			if errors.Is(err, snappy.ErrCorrupt) {
-				p.eventDispatcher.Dispatch(events.ParserWarn{
+				p.dispatchEvent(events.ParserWarn{
 					Message: "compressed message is corrupt",
 				})
 			} else {
@@ -364,7 +389,7 @@ func (p *parser) handleFrameParsed(*frameParsedTokenType) {
 	p.processFrameGameEvents()
 
 	p.currentFrame++
-	p.eventDispatcher.Dispatch(events.FrameDone{})
+	p.dispatchEvent(events.FrameDone{})
 }
 
 // CS2 demos playback info are available in the CDemoFileInfo message that should be parsed at the end of the demo.

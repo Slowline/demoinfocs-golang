@@ -119,6 +119,7 @@ type parser struct {
 	 */
 	recordingPlayerSlot           int
 	disableMimicSource1GameEvents bool
+	isSkippingToTick              bool // Set to true when we're skipping frames to reach the target tick
 
 	// Additional fields, mainly caching & tracking things
 
@@ -268,6 +269,13 @@ func (p *parser) UnregisterEventHandler(identifier dp.HandlerIdentifier) {
 	p.eventDispatcher.UnregisterHandler(identifier)
 }
 
+// dispatchEvent dispatches an event to registered handlers, but only if we're not skipping to a tick
+func (p *parser) dispatchEvent(event any) {
+	if !p.isSkippingToTick {
+		p.eventDispatcher.Dispatch(event)
+	}
+}
+
 /*
 RegisterNetMessageHandler registers a handler for net-messages.
 
@@ -335,7 +343,7 @@ func (p *parser) setError(err error) {
 func (p *parser) poolBitReader(r *bit.BitReader) {
 	err := r.Pool()
 	if err != nil {
-		p.eventDispatcher.Dispatch(events.ParserWarn{
+		p.dispatchEvent(events.ParserWarn{
 			Message: err.Error(),
 		})
 	}
@@ -511,6 +519,13 @@ type ParserConfig struct {
 	// It's the maximum time to retry for a response from the CSTV server, using an exponential backoff mechanism, starting at 1s.
 	// Only used when Format is DemoFormatCSTVBroadcast.
 	CSTVTimeout time.Duration
+
+	// SkipToTick specifies the ingame tick number from which parsing should start.
+	// All frames before this tick will be skipped without processing events or game state updates.
+	// A value of 0 (default) means parsing starts from the beginning of the demo.
+	// Note: Some initial setup data (like server info and data tables) will still be processed
+	// to ensure the parser is properly initialized.
+	SkipToTick int
 }
 
 // DefaultParserConfig is the default Parser configuration used by NewParser().

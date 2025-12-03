@@ -32,7 +32,7 @@ func (p *parser) handleClassInfo(msg *msg.CDemoClassInfo) {
 
 	p.bindEntities()
 
-	p.eventDispatcher.Dispatch(events.DataTablesParsed{})
+	p.dispatchEvent(events.DataTablesParsed{})
 }
 
 var netMsgCreators = map[msg.NET_Messages]NetMessageCreator{
